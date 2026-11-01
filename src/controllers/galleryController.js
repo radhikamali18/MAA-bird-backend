@@ -22,13 +22,12 @@ const uploadToCloudinary = (buffer) => {
   });
 };
 
-
 // CREATE GALLERY
 const createGallery = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, category, description, status } = req.body;
 
-    if (!title) {
+    if (!title || !title.trim()) {
       return res.status(400).json({
         success: false,
         message: "Title is required",
@@ -42,14 +41,14 @@ const createGallery = async (req, res) => {
       });
     }
 
-    // Upload image to Cloudinary
     const uploadedImage = await uploadToCloudinary(req.file.buffer);
 
-    // Save gallery in MongoDB
     const gallery = await Gallery.create({
-      title,
+      title: title.trim(),
+      category: category || "Recovered Bird",
       image: uploadedImage.secure_url,
       description: description || "",
+      status: status || "Published",
     });
 
     res.status(201).json({
@@ -67,7 +66,6 @@ const createGallery = async (req, res) => {
     });
   }
 };
-
 
 // GET ALL GALLERY
 const getGallery = async (req, res) => {
@@ -90,11 +88,10 @@ const getGallery = async (req, res) => {
   }
 };
 
-
 // UPDATE GALLERY
 const updateGallery = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, category, description, status } = req.body;
 
     const gallery = await Gallery.findById(req.params.id);
 
@@ -105,13 +102,15 @@ const updateGallery = async (req, res) => {
       });
     }
 
-    gallery.title = title;
-    gallery.description = description || "";
+    // Update text fields only when supplied
+    if (title !== undefined) gallery.title = title.trim();
+    if (category !== undefined) gallery.category = category;
+    if (description !== undefined) gallery.description = description;
+    if (status !== undefined) gallery.status = status;
 
-    // Agar new image upload hui hai
+    // Upload new image only if user selected one
     if (req.file) {
       const uploadedImage = await uploadToCloudinary(req.file.buffer);
-
       gallery.image = uploadedImage.secure_url;
     }
 
@@ -132,7 +131,6 @@ const updateGallery = async (req, res) => {
     });
   }
 };
-
 
 // DELETE GALLERY
 const deleteGallery = async (req, res) => {
@@ -161,7 +159,6 @@ const deleteGallery = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   createGallery,
